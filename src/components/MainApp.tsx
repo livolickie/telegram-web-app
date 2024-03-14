@@ -1,10 +1,9 @@
 import {Button, Card, Col, Row, Image, Modal} from "antd";
-import React, {useState} from "react";
-
+import React, {useCallback, useEffect, useState} from "react";
 
 const styles: Record<string, React.CSSProperties> = {
     gridStyle: {
-        width: '25%',
+        width: '50%',
         textAlign: 'center',
     },
     button: {
@@ -57,6 +56,34 @@ interface SelectedItem {
 export function MainApp() {
     
     const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
+
+    const onSendData = useCallback(() => {
+        const data = {
+            selectedItems
+        }
+        tg.sendData(JSON.stringify(data));
+    }, [selectedItems])
+    
+    useEffect(() => {
+        tg.onEvent('mainButtonClicked', onSendData)
+        return () => {
+            tg.offEvent('mainButtonClicked', onSendData)
+        }
+    }, [onSendData])
+
+    useEffect(() => {
+        tg.MainButton.setParams({
+            text: 'Отправить данные'
+        })
+    }, [])
+
+    useEffect(() => {
+        if(!selectedItems.length) {
+            tg.MainButton.hide();
+        } else {
+            tg.MainButton.show();
+        }
+    }, [selectedItems])
     
     const onApplyOrder = () => {
         const totalPrice = selectedItems.reduce((prev, item) => prev + item.count * (products.find(x => x.id == item.itemId)?.price)!, 0)
@@ -82,7 +109,7 @@ export function MainApp() {
                         <Col span={24}>{x.title}</Col> 
                         <Col span={24}>{x.price} руб.</Col> 
                         <Col span={24}>
-                            <Button type={"primary"} size={'large'} onClick={() => {
+                            <Button type={"primary"} onClick={() => {
                                 const item = selectedItems.find(i => i.itemId == x.id)
                                 if (!item) {
                                     setSelectedItems([
@@ -114,10 +141,10 @@ export function MainApp() {
             ))
         }
     </Card>
-        <div style={styles.footer}>
-            <Button type={"primary"} size={'large'} style={styles.button} onClick={onApplyOrder}>
-                Подтвердить заказ
-            </Button>
-        </div>
+        {/*<div style={styles.footer}>*/}
+        {/*    <Button type={"primary"} size={'large'} style={styles.button} onClick={onApplyOrder}>*/}
+        {/*        Подтвердить заказ*/}
+        {/*    </Button>*/}
+        {/*</div>*/}
     </div>
 }
