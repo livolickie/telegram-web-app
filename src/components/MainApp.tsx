@@ -1,59 +1,66 @@
-import {Button, Card, Col, Row, Image, Modal} from "antd";
+import {Button, Card, Col, Row, Image} from "antd";
 import React, {useCallback, useEffect, useState} from "react";
+import {useTelegram} from "../hooks/useTelegram";
 
 const styles: Record<string, React.CSSProperties> = {
     gridStyle: {
         width: '50%',
         textAlign: 'center',
-    },
-    button: {
-        width: '70%',
-        height: '10vh',
-        marginTop: 'auto 10%'
-    },
-    footer: {
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'center',
-        marginTop: '5%'
     }
 }
 
-const products = [
-    {
-        id: 1,
-        title: 'iPhone 11, белый 64GB',
-        price: 40000,
-        imageUrl: 'https://spb-apple.ru/image/cache/catalog/iphone%2011/White%201-700x700.jpg'
-    },
-    {
-        id: 2,
-        title: 'iPhone 12, фиолетовый 64GB',
-        price: 50000,
-        imageUrl: 'https://istudio-ufa.ru/a/istudio/files/multifile/2353/100032805910b0_1.webp'
-    },
-    {
-        id: 3,
-        title: 'iPhone 13 Pro Max, зеленый 128GB',
-        price: 100000,
-        imageUrl: 'https://spb-apple.ru/image/cache/catalog/Add/13%20pro%20max/a75487514ab2bd7b9018089b9c6016ef-700x700.jpg'
-    },
-    {
-        id: 4,
-        title: 'iPhone 14, желтый 128GB',
-        price: 125000,
-        imageUrl: 'https://store-apple.msk.ru/image/cache/catalog/tovary/iphone/iphone-14-plus/apple-iphone-14-14-plus-joltyy-800x800.jpg'
-    }
-]
+interface Product {
+    id: string,
+    name: string,
+    imageUrl: string,
+    price: number
+}
 
-const tg = (window as any).Telegram.WebApp;
+// const products = [
+//     {
+//         id: 1,
+//         name: 'iPhone 11, белый 64GB',
+//         price: 40000,
+//         imageUrl: 'https://spb-apple.ru/image/cache/catalog/iphone%2011/White%201-700x700.jpg'
+//     },
+//     {
+//         id: 2,
+//         name: 'iPhone 12, фиолетовый 64GB',
+//         price: 50000,
+//         imageUrl: 'https://istudio-ufa.ru/a/istudio/files/multifile/2353/100032805910b0_1.webp'
+//     },
+//     {
+//         id: 3,
+//         name: 'iPhone 13 Pro Max, зеленый 128GB',
+//         price: 100000,
+//         imageUrl: 'https://spb-apple.ru/image/cache/catalog/Add/13%20pro%20max/a75487514ab2bd7b9018089b9c6016ef-700x700.jpg'
+//     },
+//     {
+//         id: 4,
+//         name: 'iPhone 14, желтый 128GB',
+//         price: 125000,
+//         imageUrl: 'https://store-apple.msk.ru/image/cache/catalog/tovary/iphone/iphone-14-plus/apple-iphone-14-14-plus-joltyy-800x800.jpg'
+//     }
+// ]
 
 interface SelectedItem {
-    itemId: number,
+    itemId: string,
     count: number
 }
 
 export function MainApp() {
+    
+    const [products, setProducts] = useState<Product[]>([])
+    
+    const {tg} = useTelegram()
+
+    useEffect(() => {
+        tg.ready();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+
+        setProducts(JSON.parse(urlParams.get('products') ?? "[]") as Product[])
+    }, []);
     
     const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
 
@@ -62,6 +69,7 @@ export function MainApp() {
             selectedItems
         }
         tg.sendData(JSON.stringify(data));
+        setSelectedItems([])
     }, [selectedItems])
     
     useEffect(() => {
@@ -85,19 +93,6 @@ export function MainApp() {
         }
     }, [selectedItems])
     
-    const onApplyOrder = () => {
-        const totalPrice = selectedItems.reduce((prev, item) => prev + item.count * (products.find(x => x.id == item.itemId)?.price)!, 0)
-        Modal.confirm({
-            title: 'Вы уверены, что хотите подвердить заказ?',
-            content: `Сумма вашего заказа составляет ${totalPrice} руб.`,
-            onOk: () => {
-                tg?.sendData(JSON.stringify(selectedItems));
-                setSelectedItems([])
-                // Telegram send data
-            }
-        })
-    }
-    
     return <div><Card title="iPhone's Market">
         {
             products.map(x => (
@@ -106,7 +101,7 @@ export function MainApp() {
                         <Col span={24}>
                             <Image src={x.imageUrl}/>
                         </Col>
-                        <Col span={24}>{x.title}</Col> 
+                        <Col span={24}>{x.name}</Col> 
                         <Col span={24}>{x.price} руб.</Col> 
                         <Col span={24}>
                             <Button type={"primary"} onClick={() => {
@@ -141,10 +136,5 @@ export function MainApp() {
             ))
         }
     </Card>
-        {/*<div style={styles.footer}>*/}
-        {/*    <Button type={"primary"} size={'large'} style={styles.button} onClick={onApplyOrder}>*/}
-        {/*        Подтвердить заказ*/}
-        {/*    </Button>*/}
-        {/*</div>*/}
     </div>
 }
