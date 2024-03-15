@@ -1,4 +1,4 @@
-import {Button, Card, Col, Row, Image} from "antd";
+import {Button, Card, Col, Row, Image, Modal} from "antd";
 import React, {useCallback, useEffect, useState} from "react";
 import {useTelegram} from "../hooks/useTelegram";
 
@@ -6,6 +6,9 @@ const styles: Record<string, React.CSSProperties> = {
     gridStyle: {
         width: '50%',
         textAlign: 'center',
+    },
+    removeBtn: {
+        marginLeft: '5px'
     }
 }
 const products = [
@@ -51,8 +54,15 @@ export function MainApp() {
     const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
 
     const onSendData = useCallback(() => {
-        tg.sendData(JSON.stringify(selectedItems));
-        setSelectedItems([])
+        Modal.confirm({
+            title: 'Подтверждение заказа',
+            content: `Заказ на сумму ${selectedItems.reduce((sum, x) => sum + x.count * (products.find(y => y.id == x.itemId)?.price!), 0)} руб. Вы уверены?`,
+            onOk: () => {
+                tg.sendData(JSON.stringify(selectedItems));
+                setSelectedItems([])
+            }
+        })
+        
     }, [selectedItems])
     
     useEffect(() => {
@@ -64,7 +74,7 @@ export function MainApp() {
 
     useEffect(() => {
         tg.MainButton.setParams({
-            text: 'Отправить данные'
+            text: 'Оформить заказ'
         })
     }, [])
 
@@ -109,9 +119,22 @@ export function MainApp() {
                         </Col> 
                         <Col span={24}>
                             {
-                                selectedItems.some(i => i.itemId == x.id) ? `Выбрано ${
-                                    selectedItems.find(i => i.itemId == x.id)?.count 
-                                } шт.`  : ''
+                                selectedItems.some(i => i.itemId == x.id) ? <div>
+                                    {`Выбрано ${
+                                        selectedItems.find(i => i.itemId == x.id)?.count
+                                    } шт.`}
+                                    <Button danger style={styles.removeBtn} onClick={() => {
+                                        const item = selectedItems.find(i => i.itemId == x.id)
+                                        item!.count -= 1;
+                                        setSelectedItems([
+                                            ...selectedItems.filter(i => i.itemId != x.id),
+                                        ...(item!.count > 0 ? [{
+                                            itemId: x.id,
+                                            count: item?.count
+                                        }] : [])] as any)
+                                            
+                                    }}>-</Button>
+                                </div>  : ''
                             }
                         </Col>
                     </Row>
